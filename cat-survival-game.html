@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐱 小猫生存游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #fce4ec 0%, #fff9e6 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .game-container {
+            position: relative;
+            background: #fff9e6;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px 20px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .score-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ff9800;
+        }
+
+        .game-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #e91e63;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #gameCanvas {
+            border: 4px solid #ff9800;
+            border-radius: 10px;
+            background: #fffde7;
+            display: block;
+        }
+
+        .game-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 20px;
+            z-index: 10;
+            color: white;
+            padding: 20px;
+        }
+
+        .game-overlay.show {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .game-over-title {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .game-over-message {
+            font-size: 24px;
+            margin-bottom: 30px;
+            text-align: center;
+            color: #ffeb3b;
+        }
+
+        .final-score {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            color: #ff9800;
+        }
+
+        .restart-btn {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 5px 15px rgba(255, 152, 0, 0.4);
+        }
+
+        .restart-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(255, 152, 0, 0.6);
+        }
+
+        .restart-btn:active {
+            transform: translateY(0);
+        }
+
+        .start-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 20px;
+            z-index: 10;
+            color: white;
+            padding: 20px;
+        }
+
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            max-width: 400px;
+        }
+
+        .instructions h3 {
+            color: #ff9800;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .instructions ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .instructions li {
+            margin: 10px 0;
+            font-size: 16px;
+        }
+
+        .emoji-legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+        }
+
+        .speed-control {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            max-width: 400px;
+        }
+
+        .speed-control h3 {
+            color: #ff9800;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .speed-options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .speed-btn {
+            background: rgba(255, 152, 0, 0.3);
+            border: 2px solid #ff9800;
+            color: white;
+            padding: 10px 20px;
+            font-size: 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .speed-btn:hover {
+            background: rgba(255, 152, 0, 0.5);
+        }
+
+        .speed-btn.active {
+            background: #ff9800;
+            box-shadow: 0 0 15px rgba(255, 152, 0, 0.6);
+        }
+
+        .speed-display {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #ffeb3b;
+        }
+
+        .controls-hint {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <div class="game-title">🐱 小猫生存游戏</div>
+            <div class="score-display">分数: <span id="score">0</span></div>
+        </div>
+        
+        <canvas id="gameCanvas" width="600" height="600"></canvas>
+        
+        <div class="start-overlay" id="startOverlay">
+            <h2 class="game-over-title">🐱 小猫生存游戏</h2>
+            <div class="instructions">
+                <h3>游戏规则</h3>
+                <ul>
+                    <li>🎮 使用方向键控制小猫移动</li>
+                    <li>🌿 吃猫草加 10 分，身体 +1 格</li>
+                    <li>🥓 吃猫条加 20 分，身体 +2 格</li>
+                    <li>🐡 躲避河豚！碰到就会中毒</li>
+                    <li>🐭 躲避肌肉老鼠！它会追着你</li>
+                    <li>⌨️ 数字键 1-4 游戏中切换速度</li>
+                </ul>
+                <div class="emoji-legend">
+                    <div class="legend-item">🐱 你</div>
+                    <div class="legend-item">🌿 猫草</div>
+                    <div class="legend-item">🥓 猫条</div>
+                    <div class="legend-item">🐡 河豚</div>
+                    <div class="legend-item">🐭 老鼠</div>
+                </div>
+            </div>
+            <div class="speed-control">
+                <h3>选择难度</h3>
+                <div class="speed-options">
+                    <button class="speed-btn" data-speed="200" onclick="setSpeed(200, this)">🐢 慢速</button>
+                    <button class="speed-btn active" data-speed="150" onclick="setSpeed(150, this)">🚶 正常</button>
+                    <button class="speed-btn" data-speed="100" onclick="setSpeed(100, this)">🏃 快速</button>
+                    <button class="speed-btn" data-speed="60" onclick="setSpeed(60, this)">🚀 极速</button>
+                </div>
+                <div class="speed-display">当前速度: <span id="currentSpeed">正常</span></div>
+            </div>
+            <button class="restart-btn" onclick="startGame()">开始游戏</button>
+        </div>
+        
+        <div class="game-overlay" id="gameOverlay">
+            <h2 class="game-over-title">游戏结束！</h2>
+            <div class="game-over-message" id="gameOverMessage"></div>
+            <div class="final-score">最终分数: <span id="finalScore">0</span></div>
+            <button class="restart-btn" onclick="restartGame()">再试一次</button>
+        </div>
+    </div>
+    
+    <div class="controls-hint">使用 ↑ ↓ ← → 方向键控制小猫移动 | 数字键 1-4 切换速度</div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const GRID_SIZE = 20;
+        const CELL_SIZE = canvas.width / GRID_SIZE;
+
+        // Game state
+        let score = 0;
+        let gameRunning = false;
+        let gameLoop = null;
+        let lastPufferfishMove = 0;
+        let catMoveInterval = 150; // Default speed
+        let lastCatMove = 0;
+        let speedLevel = '正常';
+
+        // Speed levels
+        const speedLevels = {
+            200: '慢速',
+            150: '正常',
+            100: '快速',
+            60: '极速'
+        };
+
+        // Cat (player)
+        let cat = {
+            x: 5,
+            y: 5,
+            dx: 1,
+            dy: 0,
+            body: [],
+            nextDx: 1,
+            nextDy: 0
+        };
+
+        // Food
+        let catGrass = null;
+        let catTreat = null;
+
+        // Pufferfish (poison trap)
+        let pufferfish = [];
+
+        // Rat enemy
+        let rat = {
+            x: 15,
+            y: 15,
+            lastMove: 0,
+            moveInterval: 200 // Slightly slower than cat
+        };
+
+        function initGame() {
+            score = 0;
+            updateScore();
+
+            // Initialize cat
+            cat = {
+                x: 5,
+                y: 5,
+                dx: 1,
+                dy: 0,
+                body: [],
+                nextDx: 1,
+                nextDy: 0
+            };
+
+            // Initialize rat - adjust speed based on cat speed
+            rat = {
+                x: 15,
+                y: 15,
+                lastMove: 0,
+                moveInterval: catMoveInterval + 50 // Rat is always 50ms slower than cat
+            };
+
+            // Initialize pufferfish
+            pufferfish = [];
+            for (let i = 0; i < 3; i++) {
+                spawnPufferfish();
+            }
+
+            // Spawn food
+            spawnCatGrass();
+            spawnCatTreat();
+
+            lastPufferfishMove = 0;
+            lastCatMove = 0;
+        }
+
+        function spawnCatGrass() {
+            let position;
+            do {
+                position = getRandomPosition();
+            } while (isPositionOccupied(position));
+            catGrass = position;
+        }
+
+        function spawnCatTreat() {
+            let position;
+            do {
+                position = getRandomPosition();
+            } while (isPositionOccupied(position));
+            catTreat = position;
+        }
+
+        function spawnPufferfish() {
+            let position;
+            do {
+                position = getRandomPosition();
+            } while (isPositionOccupied(position));
+            pufferfish.push(position);
+        }
+
+        function movePufferfish() {
+            pufferfish = pufferfish.map(() => {
+                let newPosition;
+                do {
+                    newPosition = getRandomPosition();
+                } while (isPositionOccupied(newPosition));
+                return newPosition;
+            });
+        }
+
+        function getRandomPosition() {
+            return {
+                x: Math.floor(Math.random() * GRID_SIZE),
+                y: Math.floor(Math.random() * GRID_SIZE)
+            };
+        }
+
+        function isPositionOccupied(pos) {
+            // Check cat body
+            if (cat.x === pos.x && cat.y === pos.y) return true;
+            for (let segment of cat.body) {
+                if (segment.x === pos.x && segment.y === pos.y) return true;
+            }
+            
+            // Check food
+            if (catGrass && catGrass.x === pos.x && catGrass.y === pos.y) return true;
+            if (catTreat && catTreat.x === pos.x && catTreat.y === pos.y) return true;
+            
+            // Check other pufferfish
+            for (let fish of pufferfish) {
+                if (fish.x === pos.x && fish.y === pos.y) return true;
+            }
+            
+            // Check rat
+            if (rat.x === pos.x && rat.y === pos.y) return true;
+            
+            return false;
+        }
+
+        function updateCat() {
+            // Update direction
+            cat.dx = cat.nextDx;
+            cat.dy = cat.nextDy;
+
+            // Move body
+            if (cat.body.length > 0) {
+                cat.body.unshift({ x: cat.x, y: cat.y });
+                cat.body.pop();
+            }
+
+            // Move head
+            cat.x += cat.dx;
+            cat.y += cat.dy;
+
+            // Wrap around walls
+            if (cat.x < 0) cat.x = GRID_SIZE - 1;
+            if (cat.x >= GRID_SIZE) cat.x = 0;
+            if (cat.y < 0) cat.y = GRID_SIZE - 1;
+            if (cat.y >= GRID_SIZE) cat.y = 0;
+
+            // Self collision
+            for (let segment of cat.body) {
+                if (segment.x === cat.x && segment.y === cat.y) {
+                    gameOver('你撞到了自己的身体！');
+                    return;
+                }
+            }
+
+            // Check food collision
+            if (catGrass && cat.x === catGrass.x && cat.y === catGrass.y) {
+                score += 10;
+                updateScore();
+                cat.body.push({ x: cat.x, y: cat.y });
+                spawnCatGrass();
+            }
+
+            if (catTreat && cat.x === catTreat.x && cat.y === catTreat.y) {
+                score += 20;
+                updateScore();
+                cat.body.push({ x: cat.x, y: cat.y });
+                cat.body.push({ x: cat.x, y: cat.y });
+                spawnCatTreat();
+            }
+
+            // Check pufferfish collision
+            for (let fish of pufferfish) {
+                if (fish.x === cat.x && fish.y === cat.y) {
+                    gameOver('你被河豚毒死了！');
+                    return;
+                }
+            }
+
+            // Check rat collision
+            if (rat.x === cat.x && rat.y === cat.y) {
+                gameOver('你被老鼠抓住了！');
+                return;
+            }
+
+            // Check if rat touches cat body
+            for (let segment of cat.body) {
+                if (rat.x === segment.x && rat.y === segment.y) {
+                    gameOver('你被老鼠抓住了！');
+                    return;
+                }
+            }
+        }
+
+        function updateCatMovement(timestamp) {
+            if (lastCatMove === 0) {
+                lastCatMove = timestamp;
+                updateCat();
+                return;
+            }
+            if (timestamp - lastCatMove < catMoveInterval) return;
+            lastCatMove = timestamp;
+            updateCat();
+        }
+
+        function updateRat(timestamp) {
+            if (rat.lastMove === 0) {
+                rat.lastMove = timestamp;
+                return;
+            }
+            if (timestamp - rat.lastMove < rat.moveInterval) return;
+
+            rat.lastMove = timestamp;
+
+            // Simple tracking algorithm
+            let dx = cat.x - rat.x;
+            let dy = cat.y - rat.y;
+
+            // Normalize movement
+            let moveX = 0;
+            let moveY = 0;
+
+            if (Math.abs(dx) > Math.abs(dy)) {
+                moveX = dx > 0 ? 1 : -1;
+            } else {
+                moveY = dy > 0 ? 1 : -1;
+            }
+
+            // Check if next position is cat body
+            let nextX = rat.x + moveX;
+            let nextY = rat.y + moveY;
+
+            let hitsCatBody = false;
+            for (let segment of cat.body) {
+                if (segment.x === nextX && segment.y === nextY) {
+                    hitsCatBody = true;
+                    break;
+                }
+            }
+            
+            if (hitsCatBody) {
+                // Try alternative movement
+                if (moveX !== 0) {
+                    moveX = 0;
+                    moveY = cat.y > rat.y ? 1 : -1;
+                } else {
+                    moveY = 0;
+                    moveX = cat.x > rat.x ? 1 : -1;
+                }
+            }
+            
+            rat.x += moveX;
+            rat.y += moveY;
+            
+            // Wrap around
+            if (rat.x < 0) rat.x = GRID_SIZE - 1;
+            if (rat.x >= GRID_SIZE) rat.x = 0;
+            if (rat.y < 0) rat.y = GRID_SIZE - 1;
+            if (rat.y >= GRID_SIZE) rat.y = 0;
+            
+            // Check collision with cat
+            if (rat.x === cat.x && rat.y === cat.y) {
+                gameOver('你被老鼠抓住了！');
+                return;
+            }
+            
+            for (let segment of cat.body) {
+                if (rat.x === segment.x && rat.y === segment.y) {
+                    gameOver('你被老鼠抓住了！');
+                    return;
+                }
+            }
+        }
+
+        function checkPufferfishMove(timestamp) {
+            if (lastPufferfishMove === 0) {
+                lastPufferfishMove = timestamp;
+                return;
+            }
+            if (timestamp - lastPufferfishMove > 10000) { // 10 seconds
+                lastPufferfishMove = timestamp;
+                movePufferfish();
+            }
+        }
+
+        function draw() {
+            // Clear canvas
+            ctx.fillStyle = '#fffde7';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw grid
+            ctx.strokeStyle = '#f0e68c';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= GRID_SIZE; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * CELL_SIZE, 0);
+                ctx.lineTo(i * CELL_SIZE, canvas.height);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(0, i * CELL_SIZE);
+                ctx.lineTo(canvas.width, i * CELL_SIZE);
+                ctx.stroke();
+            }
+            
+            // Draw cat body
+            ctx.fillStyle = '#ffffff';
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 2;
+            for (let segment of cat.body) {
+                ctx.beginPath();
+                ctx.arc(
+                    segment.x * CELL_SIZE + CELL_SIZE / 2,
+                    segment.y * CELL_SIZE + CELL_SIZE / 2,
+                    CELL_SIZE / 3,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.fill();
+                ctx.stroke();
+            }
+            
+            // Draw cat head
+            ctx.font = `${CELL_SIZE - 4}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🐱', cat.x * CELL_SIZE + CELL_SIZE / 2, cat.y * CELL_SIZE + CELL_SIZE / 2);
+            
+            // Draw cat grass
+            if (catGrass) {
+                ctx.fillText('🌿', catGrass.x * CELL_SIZE + CELL_SIZE / 2, catGrass.y * CELL_SIZE + CELL_SIZE / 2);
+            }
+            
+            // Draw cat treat
+            if (catTreat) {
+                ctx.fillText('🥓', catTreat.x * CELL_SIZE + CELL_SIZE / 2, catTreat.y * CELL_SIZE + CELL_SIZE / 2);
+            }
+            
+            // Draw pufferfish
+            for (let fish of pufferfish) {
+                ctx.fillText('🐡', fish.x * CELL_SIZE + CELL_SIZE / 2, fish.y * CELL_SIZE + CELL_SIZE / 2);
+            }
+            
+            // Draw rat
+            ctx.fillText('🐭', rat.x * CELL_SIZE + CELL_SIZE / 2, rat.y * CELL_SIZE + CELL_SIZE / 2);
+        }
+
+        function updateScore() {
+            document.getElementById('score').textContent = score;
+        }
+
+        function gameOver(message) {
+            gameRunning = false;
+            cancelAnimationFrame(gameLoop);
+            
+            document.getElementById('gameOverMessage').textContent = message;
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('gameOverlay').classList.add('show');
+        }
+
+        function game(timestamp) {
+            if (!gameRunning) return;
+
+            updateCatMovement(timestamp);
+            updateRat(timestamp);
+            checkPufferfishMove(timestamp);
+
+            if (gameRunning) {
+                draw();
+                gameLoop = requestAnimationFrame(game);
+            }
+        }
+
+        function startGame() {
+            document.getElementById('startOverlay').style.display = 'none';
+            document.getElementById('gameOverlay').classList.remove('show');
+            
+            initGame();
+            gameRunning = true;
+            gameLoop = requestAnimationFrame(game);
+        }
+
+        function restartGame() {
+            document.getElementById('gameOverlay').classList.remove('show');
+            initGame();
+            gameRunning = true;
+            gameLoop = requestAnimationFrame(game);
+        }
+
+        function setSpeed(speed, btn) {
+            catMoveInterval = speed;
+            speedLevel = speedLevels[speed];
+
+            // Update UI
+            document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('currentSpeed').textContent = speedLevel;
+        }
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (!gameRunning) return;
+            
+            switch (e.key) {
+                case 'ArrowUp':
+                    if (cat.dy === 0) {
+                        cat.nextDx = 0;
+                        cat.nextDy = -1;
+                    }
+                    e.preventDefault();
+                    break;
+                case 'ArrowDown':
+                    if (cat.dy === 0) {
+                        cat.nextDx = 0;
+                        cat.nextDy = 1;
+                    }
+                    e.preventDefault();
+                    break;
+                case 'ArrowLeft':
+                    if (cat.dx === 0) {
+                        cat.nextDx = -1;
+                        cat.nextDy = 0;
+                    }
+                    e.preventDefault();
+                    break;
+                case 'ArrowRight':
+                    if (cat.dx === 0) {
+                        cat.nextDx = 1;
+                        cat.nextDy = 0;
+                    }
+                    e.preventDefault();
+                    break;
+                case '1':
+                    // Slow speed
+                    document.querySelectorAll('.speed-btn').forEach(b => {
+                        if (b.dataset.speed === '200') {
+                            setSpeed(200, b);
+                        }
+                    });
+                    break;
+                case '2':
+                    // Normal speed
+                    document.querySelectorAll('.speed-btn').forEach(b => {
+                        if (b.dataset.speed === '150') {
+                            setSpeed(150, b);
+                        }
+                    });
+                    break;
+                case '3':
+                    // Fast speed
+                    document.querySelectorAll('.speed-btn').forEach(b => {
+                        if (b.dataset.speed === '100') {
+                            setSpeed(100, b);
+                        }
+                    });
+                    break;
+                case '4':
+                    // Ultra fast speed
+                    document.querySelectorAll('.speed-btn').forEach(b => {
+                        if (b.dataset.speed === '60') {
+                            setSpeed(60, b);
+                        }
+                    });
+                    break;
+            }
+        });
+
+        // Initial draw
+        initGame();
+        draw();
+    </script>
+</body>
+</html>
